@@ -27,6 +27,7 @@ from common import (
     clean_inline,
     clean_text,
     format_duration,
+    friendly_duration,
     from_iso,
     to_iso,
     utc_now,
@@ -40,6 +41,8 @@ from database import transaction
 
 ACTION_DECLINED = "WORK_ORDER_DECLINED"
 ACTION_DELAY = "DELAY_REASON"
+ACTION_REPORTED_BY = "REPORTED_BY"
+MAX_REPORTER_LENGTH = 100
 
 PROGRESS_TEXT = {
     STATUS_OPEN: "Logged, and a repair is being arranged",
@@ -101,7 +104,7 @@ def get_ticket(conn, ticket_id):
     return row
 
 
-def create_ticket(conn, flat=None, block=None, category=None, severity=None, text=None, now=None):
+def create_ticket(conn, flat=None, block=None, category=None, severity=None, text=None, now=None, reported_by=None):
     """Create a ticket. Missing details are reported, never guessed.
 
     Pass flat for a complaint about a flat, or block alone for a shared area
@@ -137,6 +140,9 @@ def create_ticket(conn, flat=None, block=None, category=None, severity=None, tex
 
     created = now or utc_now()
     created_at = to_iso(created)
+    reporter = clean_inline(reported_by).lstrip("@ ") if reported_by else ""
+    if len(reporter) > MAX_REPORTER_LENGTH:
+        raise ValidationError(f"Reporter name is too long (maximum {MAX_REPORTER_LENGTH} characters).")
 
     with transaction(conn):
         duplicate = conn.execute(
@@ -161,7 +167,21 @@ def create_ticket(conn, flat=None, block=None, category=None, severity=None, tex
             ),
         )
         add_history(conn, ticket_id, "TICKET_CREATED", f"{severity} {category} ticket created", created_at)
+        if reporter:
+            add_history(conn, ticket_id, ACTION_REPORTED_BY, reporter, created_at)
     return get_ticket(conn, ticket_id)
+
+
+def get_reported_by(conn, ticket_id):
+    """The name of the person who raised the ticket, or None if not recorded."""
+    row = _latest_history(conn, validate_ticket_id(ticket_id), ACTION_REPORTED_BY)
+    return row["description"] if row else None
+
+
+def time_taken(ticket):
+    """Time from the complaint to the ticket's last update, in plain words.
+    For a closed ticket, that last update is the closure."""
+    return friendly_duration(from_iso(ticket["updated_at"]) - from_iso(ticket["created_at"]))
 
 
 def _set_status(conn, ticket_id, status, confirmation, updated_at):
@@ -316,6 +336,7 @@ def get_status(conn, ticket_id, now=None):
         "delay_reason": delay["description"] if delay and is_open else None,
         "decline_reason": decline_reason,
         "next_step": next_step,
+        "reported_by": get_reported_by(conn, ticket["ticket_id"]),
     }
 
 

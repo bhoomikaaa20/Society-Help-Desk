@@ -7,7 +7,7 @@ from helpers import FIXED_NOW, DeskTestCase
 
 import ticket_manager as tm
 import work_order_manager as wom
-from common import RuleViolation, ValidationError
+from common import RuleViolation, ValidationError, friendly_duration
 
 
 class Estimates(DeskTestCase):
@@ -90,6 +90,54 @@ class Status(DeskTestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Running late:   YES", result.stdout)
         self.assertIn("ask the manager", result.stdout)
+
+
+class ClosingMessage(DeskTestCase):
+    def test_reporter_is_saved_and_cleaned(self):
+        ticket = tm.create_ticket(
+            self.conn, block="B", category="Lift", severity="Normal", text="Lift stopped",
+            reported_by="@Bhoomi\n", now=FIXED_NOW,
+        )
+        self.assertEqual(tm.get_reported_by(self.conn, ticket["ticket_id"]), "Bhoomi")
+
+    def test_reporter_is_optional(self):
+        ticket = tm.create_ticket(self.conn, block="B", category="Lift", severity="Normal", text="Lift stopped")
+        self.assertIsNone(tm.get_reported_by(self.conn, ticket["ticket_id"]))
+
+    def test_friendly_duration(self):
+        for delta, expected in (
+            (timedelta(minutes=20), "less than 1 hour"),
+            (timedelta(hours=1), "about 1 hour"),
+            (timedelta(hours=3, minutes=20), "about 3 hours"),
+            (timedelta(hours=26), "about 1 day"),
+            (timedelta(hours=50), "about 2 days"),
+        ):
+            with self.subTest(delta=delta):
+                self.assertEqual(friendly_duration(delta), expected)
+
+    def test_time_taken_runs_from_complaint_to_closure(self):
+        ticket = tm.create_ticket(
+            self.conn, block="B", category="Lift", severity="Normal", text="Lift stopped", now=FIXED_NOW
+        )
+        ticket_id = ticket["ticket_id"]
+        wom.create_work_order(self.conn, ticket_id, "V-04", "3200", now=FIXED_NOW)
+        tm.mark_vendor_done(self.conn, ticket_id, "Fixed", now=FIXED_NOW + timedelta(hours=20))
+        closed = tm.close_ticket(self.conn, ticket_id, "B-204 resident", now=FIXED_NOW + timedelta(hours=26))
+        self.assertEqual(tm.time_taken(closed), "about 1 day")
+
+    def test_cli_close_shows_reporter_and_time_taken(self):
+        steps = (
+            ("add", "--block", "B", "--category", "lift", "--severity", "normal",
+             "--text", "Lift stopped", "--reported-by", "Bhoomi"),
+            ("work-order", "T-031", "V-04", "--amount", "3200"),
+            ("update", "T-031", "vendor-done", "--note", "Controller replaced"),
+        )
+        for step in steps:
+            self.assertEqual(self.run_cli(*step).returncode, 0)
+        result = self.run_cli("close", "T-031", "--confirmed-by", "B-204 resident")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("Reported by:  Bhoomi", result.stdout)
+        self.assertIn("Time taken:   less than 1 hour", result.stdout)
 
 
 class Declines(DeskTestCase):

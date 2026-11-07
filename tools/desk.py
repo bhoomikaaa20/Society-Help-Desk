@@ -70,10 +70,12 @@ def command_init(_conn_unused, args):
 
 def command_add(conn, args):
     ticket = ticket_manager.create_ticket(
-        conn, flat=args.flat, block=args.block, category=args.category, severity=args.severity, text=args.text
+        conn, flat=args.flat, block=args.block, category=args.category, severity=args.severity, text=args.text,
+        reported_by=args.reported_by,
     )
     print(f"Created ticket {ticket['ticket_id']}.")
     print_ticket(ticket)
+    print(f"Reported by: {ticket_manager.get_reported_by(conn, ticket['ticket_id']) or 'not recorded'}")
     estimate = ticket_manager.estimate_repair(conn, ticket)
     source = (
         f"based on {estimate['based_on']} similar past repair(s)"
@@ -88,6 +90,7 @@ def command_status(conn, args):
     result = ticket_manager.get_status(conn, args.ticket_id)
     ticket = result["ticket"]
     print(f"Ticket:         {ticket['ticket_id']}")
+    print(f"Reported by:    {result['reported_by'] or 'not recorded'}")
     print(f"Progress:       {result['progress']}")
     print(f"Estimated time: {result['estimate']['label']}")
     print(f"Expected by:    {format_time(result['estimate']['expected_by'])}")
@@ -215,6 +218,8 @@ def command_close(conn, args):
     print(f"Ticket {ticket['ticket_id']} closed. Status: {ticket['status']}.")
     print(f"Confirmed by: {clean_inline(args.confirmed_by)}")
     print(f"Closed at:    {format_time(ticket['updated_at'])}")
+    print(f"Time taken:   {ticket_manager.time_taken(ticket)}")
+    print(f"Reported by:  {ticket_manager.get_reported_by(conn, ticket['ticket_id']) or 'not recorded'}")
     return 0
 
 
@@ -313,6 +318,7 @@ def build_parser():
     add.add_argument("--category", help="Plumbing, Electrical, Lift, Security, Cleaning, Painting, General Maintenance")
     add.add_argument("--severity", help="Urgent (4h), Normal (48h) or Low (7 days)")
     add.add_argument("--text", help="the resident's complaint text")
+    add.add_argument("--reported-by", help="the resident's Discord name, used to tag them when the ticket closes")
     add.set_defaults(handler=command_add)
 
     history = commands.add_parser("history", help="show ticket history and the recurring fault check")

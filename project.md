@@ -1,6 +1,6 @@
 # Society Desk: Project Guide
 
-Society Desk lets apartment residents report maintenance problems in Discord. Three AI agents log the problem, find the right vendor and request the work order. A manager approves the money, and the resident confirms the repair.
+Society Desk lets apartment residents report maintenance problems in Discord. Three AI agents log the problem, gather the facts and request the work order. A manager chooses the vendor and cost and approves the money, and the resident confirms the repair.
 
 All data in this project is fictional.
 
@@ -21,12 +21,12 @@ Resident or manager
 | Agent | Job |
 |---|---|
 | `helpdesk` | Talks to residents, creates tickets and closes them after the resident confirms |
-| `operations` | Checks past failures, vendors and budget, then recommends a work order |
+| `operations` | Gives the manager the past failures, vendors and budget, then passes on the manager's choice |
 | `treasurer` | Requests the work order, which waits for the manager's answer |
 
 Two people have to agree before a job is finished:
 
-- **The manager** approves the money, before the repair.
+- **The manager** assigns the vendor and cost, then approves the money, before the repair.
 - **The resident** confirms the problem is fixed, after the repair.
 
 ## What you need
@@ -96,14 +96,18 @@ Then send each message in the channel, starting it with the agent's `@name`:
 | Step | Send | You should see |
 |---|---|---|
 | 1 | `@helpdesk The lift in Block B stopped working.` | "Is anyone trapped in the lift?" |
-| 2 | `@helpdesk No.` | Ticket `T-031`, then a summary from Operations: 3 past failures, EUR 8,170, vendor `V-04`, about EUR 3,200 |
-| 3 | Answer the permission request with **Decline** or `no` | "Declined. No money was spent." Treasurer asks why, and what should happen next |
-| 4 | `@treasurer The quote is too high. Next step: get a cheaper quote.` | Helpdesk gives the resident a kind update with no money details, and asks Operations for another option |
-| 5 | Answer the new permission request with **Allow once** or `yes` | `WO-001` created. Budget left depends on the vendor Operations picked |
-| 6 | `@helpdesk What's happening with T-031?` | Its progress and estimated repair time |
-| 7 | `@helpdesk The vendor finished T-031. The lift controller was replaced.` | "Has the maintenance issue been resolved successfully?" |
-| 8 | `@helpdesk Yes, it's working now.` | "Great! What is your flat number?" |
-| 9 | `@helpdesk B-204` | "Thank you! Ticket T-031 is now closed." |
+| 2 | `@helpdesk No.` | Ticket `T-031`, then a list from Operations: 3 past failures, EUR 8,170, EUR 10,200 budget left, and vendors `V-04` and `V-05` with no recommendation |
+| 3 | `@operations T-031: assign V-04, EUR 3200` | A permission request from Treasurer |
+| 4 | Answer the permission request with **Decline** or `no` | "Declined. No money was spent." Treasurer asks why, and what should happen next |
+| 5 | `@treasurer The quote is too high. Next step: use another vendor.` | Helpdesk gives the resident a kind update with no money details, and Operations lists the vendors again |
+| 6 | `@operations T-031: assign V-05, EUR 2600` | A new permission request |
+| 7 | Answer the new permission request with **Allow once** or `yes` | `WO-001` created, EUR 7,600 left in the Lift budget |
+| 8 | `@helpdesk What's happening with T-031?` | Its progress and estimated repair time |
+| 9 | `@helpdesk T-031 vendor finished: lift controller replaced` | Helpdesk tags the resident: "Has the maintenance issue been resolved successfully?" |
+| 10 | `@helpdesk Yes, it's working now.` | "Great! What is your flat number?" |
+| 11 | `@helpdesk B-204` | Helpdesk tags the resident: ticket closed, and how long the repair took |
+
+A ticket closes only when the manager or vendor has reported the work finished, and then the resident has confirmed the fix.
 
 To check the results yourself:
 

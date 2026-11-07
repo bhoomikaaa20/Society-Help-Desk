@@ -28,7 +28,7 @@ Resident -> Discord -> Switch Console
             v            v            v
         @helpdesk -> @operations -> @treasurer
             |            |            |
-            |            |    Switch asks the manager:
+            |            |    Switch asks the manager,
             |            |    Allow once / Decline
             |            |            |
             v            v            v  (only if allowed)
@@ -54,7 +54,7 @@ OPEN -> WORK ORDER CREATED -> IN PROGRESS -> VENDOR-DONE -> CLOSED
 | Agent | Commands | Responsibility |
 |---|---|---|
 | `helpdesk` | `add`, `update`, `close` | Creates tickets, asks residents to confirm repairs, and hands new tickets to Operations |
-| `operations` | `history`, `vendor`, `budget`, `report`, `overdue` | Explains recurring faults, recommends a vendor, checks the budget, and hands off to Treasurer |
+| `operations` | `history`, `vendor`, `budget`, `report`, `overdue` | Gives the manager the recurring faults, vendors and budget, then passes the manager's chosen vendor and cost to Treasurer |
 | `treasurer` | `work-order` only | Requests the work order, which Switch holds until the manager answers |
 
 The instructions for each agent are in [switch/](switch/).
@@ -114,7 +114,7 @@ python tools/desk.py init --reset --yes
 ```powershell
 python tools/desk.py --help
 python tools/desk.py add --flat B-204 --category plumbing --severity urgent --text "Water dripping from bathroom ceiling"
-python tools/desk.py add --block B --category lift --severity normal --text "The lift in Block B stopped working again."
+python tools/desk.py add --block B --category lift --severity normal --text "The lift in Block B stopped working again." --reported-by "Resident name"
 python tools/desk.py history T-014
 python tools/desk.py vendor T-014
 python tools/desk.py budget
@@ -246,7 +246,7 @@ These settings are what make approval real. Python can't tell whether a human ap
 - **Treasurer: Auto mode off.** Auto mode is on by default, and it lets Claude Code decide which actions run without asking. It could let `work-order` through with no human.
 - **All agents: Bypass permissions off.** It removes all approval prompts.
 - **Treasurer: keep "Who can talk to it" limited.** Anyone the agent takes instructions from can answer its approval requests, so "Anyone" would let residents approve spending.
-- **Manager: choose Allow once for each work order.** Avoid **Allow for this session**, because it may let later work orders run without asking.
+- **Manager, choose Allow once for each work order.** Avoid **Allow for this session**, because it may let later work orders run without asking.
 - **Helpdesk and Operations also have shell access.** Their instructions forbid `work-order`, but instructions aren't an enforcement mechanism. Use **Disallowed tools** to remove file editing, and test the case below. With Auto mode off on Helpdesk, residents it takes instructions from could answer its prompts, so keep Auto mode on there only if the test below passes.
 
 ### 4. Create the room
@@ -273,7 +273,7 @@ Run `python tools/desk.py init --reset --yes` after testing.
 
 ## Human approval flow
 
-1. Operations posts its recommendation and hands off to `@treasurer`.
+1. Operations lists the facts, and the manager assigns a vendor and cost with `@operations <ticket>: assign <vendor>, EUR <amount>`. Operations passes this to `@treasurer`. The manager makes this choice in place of the PRD's agent recommendation; the backend's `vendor` command still scores vendors, but the agents don't present a recommendation.
 2. Treasurer tries to run `python tools/desk.py work-order <ticket> <vendor> --amount <amount>`.
 3. Switch holds the command and posts a permission request in the room, with **Allow once / Allow for this session / Decline** as the options. In Discord it can appear as text such as `Permission needed · request A1`, so the manager may need to answer by typing a reply such as `yes` or `no`.
 4. **Decline or `no`:** the command never runs, so no work order is created and no budget is used.
@@ -289,8 +289,8 @@ Start with `python tools/desk.py init --reset --yes`.
 | 2 | Helpdesk | `add --block B --category lift ...` | Ticket `T-031`, with its ID and deadline given to the resident |
 | 3 | Helpdesk | Hands off to `@operations` | |
 | 4 | Operations | `history T-031` | Three previous failures, EUR 8,170 |
-| 5 | Operations | `vendor T-031`, `budget` | V-04 recommended at an estimated EUR 3,200; EUR 10,200 remaining |
-| 6 | Operations | Hands off to `@treasurer` | |
+| 5 | Operations | `vendor T-031`, `budget` | Lists V-04 and V-05 with their estimates; EUR 10,200 remaining |
+| 6 | Manager | `@operations T-031: assign V-04, EUR 3200` | Operations passes this to `@treasurer` |
 | 7 | Treasurer | `work-order T-031 V-04 --amount 3200` | Switch asks the manager |
 | 8 | Manager | **Allow once** | `WO-001` created; EUR 7,000 remaining |
 | 9 | Manager | `@helpdesk The vendor finished T-031: lift controller replaced` | Status `VENDOR-DONE` |

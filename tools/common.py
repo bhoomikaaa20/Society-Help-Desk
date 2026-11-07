@@ -115,6 +115,18 @@ def format_duration(delta):
     return f"{mins}m"
 
 
+def friendly_duration(delta):
+    """Plain words for residents, such as 'about 3 hours' or 'about 2 days'."""
+    hours = delta.total_seconds() / 3600
+    if hours < 1:
+        return "less than 1 hour"
+    if hours < 24:
+        rounded = round(hours)
+        return f"about {rounded} hour{'s' if rounded != 1 else ''}"
+    rounded = round(hours / 24)
+    return f"about {rounded} day{'s' if rounded != 1 else ''}"
+
+
 def format_time(text):
     """Render a stored timestamp for people, keeping the timezone explicit."""
     return from_iso(text).strftime("%Y-%m-%d %H:%M UTC") if text else "-"

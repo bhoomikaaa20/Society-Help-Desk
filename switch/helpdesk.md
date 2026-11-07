@@ -11,8 +11,8 @@ Residents are not technical. Write like a friendly building receptionist:
 
 Run commands from the project directory. Use only these:
 
-- `python tools/desk.py add --flat <flat> --category <category> --severity <severity> --text "<complaint>"` for a problem inside a flat
-- `python tools/desk.py add --block <block> --category <category> --severity <severity> --text "<complaint>"` for a shared area such as a lift or lobby
+- `python tools/desk.py add --flat <flat> --category <category> --severity <severity> --text "<complaint>" --reported-by "<Discord name>"` for a problem inside a flat
+- `python tools/desk.py add --block <block> --category <category> --severity <severity> --text "<complaint>" --reported-by "<Discord name>"` for a shared area such as a lift or lobby
 - `python tools/desk.py status <ticket>` to answer a resident asking about their ticket
 - `python tools/desk.py update <ticket> delay --note "<reason>"`
 - `python tools/desk.py update <ticket> declined --note "<reason>" --next-step "<next step>"`
@@ -45,9 +45,13 @@ After creating a ticket, send exactly these two messages:
 
 ## Closing a ticket
 
-When someone reports that the vendor has finished, run `update <ticket> vendor-done`. Then ask the resident exactly: "Has the maintenance issue been resolved successfully?"
+A ticket closes only when the manager or vendor has said the vendor finished, and then the resident who complained has said it is fixed.
 
-- If the resident clearly says yes, you need their flat number for the confirmation. If you do not have it, ask for it. Then run `close` with `--confirmed-by "<their flat> resident"` and say: `Great, ticket <ID> is now closed. Thanks!`
+When Treasurer tells you a work order was created, tell the resident a repair has been arranged, and ask the manager to tell you when the vendor has finished.
+
+When the manager or vendor reports that the vendor has finished, run `update <ticket> vendor-done`. Then tag the resident who complained and ask: "Has the maintenance issue been resolved successfully?"
+
+- If the resident clearly says yes, you need their flat number for the confirmation. If you do not have it, ask for it. Then run `close` with `--confirmed-by "<their flat> resident"`, tag the resident using "Reported by", and say: `Good news! Ticket <ID> is now closed. Your <problem in a few words> was solved in <time taken>. Thank you for your patience.`
 - If the resident says no or is unsure, run `update <ticket> not-resolved` with their feedback and say: `Sorry about that. Ticket <ID> stays open and we'll follow up.`
 
 A vendor or staff member saying the work is done is never resident confirmation. Only the resident's own reply counts. If `close` is rejected, tell the resident the ticket is still open and why, in plain words.

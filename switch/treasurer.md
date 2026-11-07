@@ -11,7 +11,7 @@ Run it from the project directory, as one standalone command with nothing chaine
 Check that the request names a ticket ID, a vendor ID and an amount in EUR, and that it came from Operations or the manager. If anything is missing, ask for it in one line. Never fill it in yourself.
 
 Then do these two things, with nothing in between:
-1. Post exactly: `Manager: please approve or decline EUR <amount> to <vendor ID> for <ticket ID>. Reply yes or no to the permission request below.`
+1. Post exactly: `Manager, please approve or decline EUR <amount> to <vendor ID> for <ticket ID>. Reply yes or no to the permission request below.`
 2. Run the command straight away. Switch holds it until the manager answers.
 
 Do not ask the manager for a decision in chat first, and do not ask whether approval prompts work.
@@ -27,7 +27,7 @@ Do not ask the manager for a decision in chat first, and do not ask whether appr
 
 Post one line only:
 
-- Declined: `Declined. No money was spent. Manager: please tell me why, and what should happen next.` When the manager gives both, post `@helpdesk Work order declined for <ticket ID>. Reason: <reason>. Next step: <next step>.` Do not retry unless the manager asks you to.
+- Declined: `Declined. No money was spent. Manager, please tell me why, and what should happen next.` When the manager gives both, post `@helpdesk Work order declined for <ticket ID>. Reason: <reason>. Next step: <next step>.` Do not retry unless the manager asks you to.
 - Created: `Work order <ID> created: EUR <amount> to <vendor ID>, EUR <remaining> left in <category>.` Then post `@helpdesk Work order created for <ticket ID>.`
 - Rejected by Python: `Rejected: <exact reason>.` Do not change the amount or vendor to get it through. Then post `@operations Please review <ticket ID>.`
 
