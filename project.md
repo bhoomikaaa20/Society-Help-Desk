@@ -97,12 +97,13 @@ Then send each message in the channel, starting it with the agent's `@name`:
 |---|---|---|
 | 1 | `@helpdesk The lift in Block B stopped working.` | "Is anyone trapped in the lift?" |
 | 2 | `@helpdesk No.` | Ticket `T-031`, then a summary from Operations: 3 past failures, EUR 8,170, vendor `V-04`, about EUR 3,200 |
-| 3 | Answer the permission request with **Decline** or `no` | "Declined. No money was spent." |
-| 4 | `@treasurer Please request the work order again: ticket T-031, vendor V-04, amount 3200.` | A new permission request |
-| 5 | Answer with **Allow once** or `yes` | `WO-001` created, EUR 7,000 left in the Lift budget |
-| 6 | `@helpdesk The vendor finished T-031. The lift controller was replaced.` | "Has the maintenance issue been resolved successfully?" |
-| 7 | `@helpdesk Yes, it's working now.` | "Great! What is your flat number?" |
-| 8 | `@helpdesk B-204` | "Thank you! Ticket T-031 is now closed." |
+| 3 | Answer the permission request with **Decline** or `no` | "Declined. No money was spent." Treasurer asks why, and what should happen next |
+| 4 | `@treasurer The quote is too high. Next step: get a cheaper quote.` | Helpdesk gives the resident a kind update with no money details, and asks Operations for another option |
+| 5 | Answer the new permission request with **Allow once** or `yes` | `WO-001` created. Budget left depends on the vendor Operations picked |
+| 6 | `@helpdesk What's happening with T-031?` | Its progress and estimated repair time |
+| 7 | `@helpdesk The vendor finished T-031. The lift controller was replaced.` | "Has the maintenance issue been resolved successfully?" |
+| 8 | `@helpdesk Yes, it's working now.` | "Great! What is your flat number?" |
+| 9 | `@helpdesk B-204` | "Thank you! Ticket T-031 is now closed." |
 
 To check the results yourself:
 

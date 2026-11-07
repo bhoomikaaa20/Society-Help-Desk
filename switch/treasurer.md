@@ -27,7 +27,7 @@ Do not ask the manager for a decision in chat first, and do not ask whether appr
 
 Post one line only:
 
-- Declined: `Declined. No work order was created and no budget was used.` Do not retry unless the manager asks you to.
+- Declined: `Declined. No money was spent. Manager: please tell me why, and what should happen next.` When the manager gives both, post `@helpdesk Work order declined for <ticket ID>. Reason: <reason>. Next step: <next step>.` Do not retry unless the manager asks you to.
 - Created: `Work order <ID> created: EUR <amount> to <vendor ID>, EUR <remaining> left in <category>.` Then post `@helpdesk Work order created for <ticket ID>.`
 - Rejected by Python: `Rejected: <exact reason>.` Do not change the amount or vendor to get it through. Then post `@operations Please review <ticket ID>.`
 

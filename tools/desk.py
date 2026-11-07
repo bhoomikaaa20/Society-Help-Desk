@@ -74,6 +74,32 @@ def command_add(conn, args):
     )
     print(f"Created ticket {ticket['ticket_id']}.")
     print_ticket(ticket)
+    estimate = ticket_manager.estimate_repair(conn, ticket)
+    source = (
+        f"based on {estimate['based_on']} similar past repair(s)"
+        if estimate["based_on"]
+        else "no similar past repairs, so this is the target time"
+    )
+    print(f"Estimated repair time: {estimate['label']} ({source})")
+    return 0
+
+
+def command_status(conn, args):
+    result = ticket_manager.get_status(conn, args.ticket_id)
+    ticket = result["ticket"]
+    print(f"Ticket:         {ticket['ticket_id']}")
+    print(f"Progress:       {result['progress']}")
+    print(f"Estimated time: {result['estimate']['label']}")
+    print(f"Expected by:    {format_time(result['estimate']['expected_by'])}")
+    if ticket["status"] != "CLOSED":
+        print(f"Running late:   {'YES' if result['is_late'] else 'NO'}")
+    if result["decline_reason"]:
+        print(f"Declined:       {result['decline_reason']}")
+        print(f"Next step:      {result['next_step'] or '-'}")
+    if result["delay_reason"]:
+        print(f"Delay reason:   {result['delay_reason']}")
+    elif result["is_late"]:
+        print("Delay reason:   not recorded yet, so ask the manager")
     return 0
 
 
@@ -169,8 +195,12 @@ def command_update(conn, args):
         "in-progress": ticket_manager.mark_in_progress,
         "vendor-done": ticket_manager.mark_vendor_done,
         "not-resolved": ticket_manager.mark_not_resolved,
+        "delay": ticket_manager.record_delay,
     }
-    ticket = actions[args.action](conn, args.ticket_id, args.note)
+    if args.action == "declined":
+        ticket = ticket_manager.record_decline(conn, args.ticket_id, args.note, args.next_step)
+    else:
+        ticket = actions[args.action](conn, args.ticket_id, args.note)
     print(f"Ticket {ticket['ticket_id']} updated. Status: {ticket['status']}.")
     print(f"Confirmation: {ticket['confirmation_status']}")
     print(f"Note recorded at: {format_time(ticket['updated_at'])}")
@@ -305,11 +335,16 @@ def build_parser():
     work_order.add_argument("--amount", help="approved amount in EUR, e.g. 2500")
     work_order.set_defaults(handler=command_work_order)
 
-    update = commands.add_parser("update", help="record vendor progress or a resident's negative feedback")
+    update = commands.add_parser("update", help="record progress, resident feedback, a delay or a declined work order")
     update.add_argument("ticket_id")
-    update.add_argument("action", choices=["in-progress", "vendor-done", "not-resolved"])
-    update.add_argument("--note", help="what happened")
+    update.add_argument("action", choices=["in-progress", "vendor-done", "not-resolved", "delay", "declined"])
+    update.add_argument("--note", help="what happened, or the reason for a delay or decline")
+    update.add_argument("--next-step", help="for declined: what happens next")
     update.set_defaults(handler=command_update)
+
+    status = commands.add_parser("status", help="show a ticket's progress and estimate, safe to share with residents")
+    status.add_argument("ticket_id")
+    status.set_defaults(handler=command_status)
 
     close = commands.add_parser("close", help="close a ticket after resident confirmation")
     close.add_argument("ticket_id")

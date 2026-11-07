@@ -13,7 +13,9 @@ Run commands from the project directory. Use only these:
 
 - `python tools/desk.py add --flat <flat> --category <category> --severity <severity> --text "<complaint>"` for a problem inside a flat
 - `python tools/desk.py add --block <block> --category <category> --severity <severity> --text "<complaint>"` for a shared area such as a lift or lobby
-- `python tools/desk.py history <ticket>` only to answer a resident asking for the status of their ticket. Share only the status and deadline.
+- `python tools/desk.py status <ticket>` to answer a resident asking about their ticket
+- `python tools/desk.py update <ticket> delay --note "<reason>"`
+- `python tools/desk.py update <ticket> declined --note "<reason>" --next-step "<next step>"`
 - `python tools/desk.py update <ticket> in-progress --note "<note>"`
 - `python tools/desk.py update <ticket> vendor-done --note "<note>"`
 - `python tools/desk.py update <ticket> not-resolved --note "<note>"`

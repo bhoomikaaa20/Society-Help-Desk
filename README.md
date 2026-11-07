@@ -122,6 +122,9 @@ python tools/desk.py work-order T-014 V-02 --amount 2500
 python tools/desk.py update T-014 in-progress --note "Engineer on site"
 python tools/desk.py update T-014 vendor-done --note "Pipe joint replaced"
 python tools/desk.py update T-014 not-resolved --note "Resident says it still drips"
+python tools/desk.py update T-014 delay --note "Waiting for a spare part"
+python tools/desk.py update T-014 declined --note "Quote too high" --next-step "Getting a cheaper quote"
+python tools/desk.py status T-014
 python tools/desk.py close T-014 --confirmed-by "B-204 resident"
 python tools/desk.py overdue
 python tools/desk.py report --month 2026-11
@@ -172,6 +175,9 @@ REJECTED: Cannot close ticket T-014: 'V-02 vendor' is not a valid resident confi
 - **Recurring faults:** a previous incident has the same block and category and an earlier date. Categories other than Lift must also share a description keyword, because a block's lift is one shared asset while its plumbing is not. Two or more previous incidents count as recurring.
 - **Vendor score:** response time, rating and cost, each scaled among the vendors in that category. Urgent tickets weight response time most, and Low tickets weight cost most. The `vendor` output shows the weights and labels every price as an estimate.
 - **Work orders:** the ticket must be `OPEN`, the vendor must serve the ticket's category, the amount must be positive, and the budget must cover it. The work order, budget charge, ticket update and history entry are written in one transaction, so they all succeed or none do.
+- **Repair estimates:** the median time of earlier finished repairs with the same category and severity, rounded up and never beyond the severity's target. With no earlier repairs, the target is the estimate.
+- **Declined work orders:** Switch stops the command, so no money moves. The manager then gives a reason and a next step, and Python refuses a decline record without both. The ticket stays open, and residents are told what happens next without any money or vendor details.
+- **Delays:** the manager supplies the reason. If none is recorded, `status` says so, and Helpdesk asks the manager instead of making one up.
 - **Money:** stored as integer euro cents, so rounding errors can't build up.
 - **Time:** stored in UTC and displayed with the `UTC` label. SLA deadlines run on calendar time. A ticket stays overdue until it is closed, including while it waits for the resident to confirm.
 - **Untrusted text:** complaints are stored through parameterised SQL and stripped of line breaks and control characters, so they can't forge CLI output. The output labels them as resident-supplied data.

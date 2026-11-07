@@ -1,6 +1,9 @@
 """Ticket creation, lifecycle, SLA tracking and recurring fault detection."""
 
+import math
 import re
+import statistics
+from datetime import timedelta
 
 from common import (
     COMMON_AREA,
@@ -12,6 +15,7 @@ from common import (
     MAX_NOTE_LENGTH,
     NotFoundError,
     RuleViolation,
+    SLA_HOURS,
     STATUS_CLOSED,
     STATUS_IN_PROGRESS,
     STATUS_OPEN,
@@ -33,6 +37,17 @@ from common import (
     validate_ticket_id,
 )
 from database import transaction
+
+ACTION_DECLINED = "WORK_ORDER_DECLINED"
+ACTION_DELAY = "DELAY_REASON"
+
+PROGRESS_TEXT = {
+    STATUS_OPEN: "Logged, and a repair is being arranged",
+    STATUS_WORK_ORDER: "Repair arranged",
+    STATUS_IN_PROGRESS: "Repair under way",
+    STATUS_VENDOR_DONE: "Repair finished, waiting for the resident to confirm",
+    STATUS_CLOSED: "Closed",
+}
 
 # A fault counts as recurring once this many earlier matching incidents exist.
 RECURRING_THRESHOLD = 2
@@ -201,6 +216,107 @@ def mark_not_resolved(conn, ticket_id, note, now=None):
         _set_status(conn, ticket["ticket_id"], STATUS_IN_PROGRESS, CONFIRMATION_DECLINED, moment)
         add_history(conn, ticket["ticket_id"], "RESIDENT_NOT_RESOLVED", note, moment)
     return get_ticket(conn, ticket_id)
+
+
+def record_decline(conn, ticket_id, reason, next_step, now=None):
+    """Record why the manager declined a work order and what happens next. No
+    money moves, and the ticket stays OPEN so that a new request can follow."""
+    reason = clean_text(reason, "Decline reason", MAX_NOTE_LENGTH)
+    next_step = clean_text(next_step, "Next step", MAX_NOTE_LENGTH)
+    moment = to_iso(now or utc_now())
+    with transaction(conn):
+        ticket = get_ticket(conn, ticket_id)
+        _require_status(ticket, (STATUS_OPEN,), "record a declined work order for")
+        conn.execute(
+            "UPDATE tickets SET updated_at = ? WHERE ticket_id = ?", (moment, ticket["ticket_id"])
+        )
+        add_history(conn, ticket["ticket_id"], ACTION_DECLINED, f"{reason} | Next step: {next_step}", moment)
+    return get_ticket(conn, ticket_id)
+
+
+def record_delay(conn, ticket_id, reason, now=None):
+    """Record the reason a repair is taking longer, for residents who ask."""
+    reason = clean_text(reason, "Delay reason", MAX_NOTE_LENGTH)
+    moment = to_iso(now or utc_now())
+    with transaction(conn):
+        ticket = get_ticket(conn, ticket_id)
+        if ticket["status"] == STATUS_CLOSED:
+            raise RuleViolation(f"Ticket {ticket['ticket_id']} is already closed.")
+        conn.execute(
+            "UPDATE tickets SET updated_at = ? WHERE ticket_id = ?", (moment, ticket["ticket_id"])
+        )
+        add_history(conn, ticket["ticket_id"], ACTION_DELAY, reason, moment)
+    return get_ticket(conn, ticket_id)
+
+
+def estimate_repair(conn, ticket):
+    """Estimate repair time from the median of earlier finished repairs with the
+    same category and severity, never beyond the SLA target. With no earlier
+    repairs, the SLA target is the estimate. Only repairs finished before the
+    ticket was created count, so a ticket's estimate does not change later."""
+    rows = conn.execute(
+        """SELECT t.created_at AS started, MAX(h.created_at) AS finished
+           FROM tickets t JOIN ticket_history h ON h.ticket_id = t.ticket_id
+           WHERE t.category = ? AND t.severity = ? AND t.ticket_id <> ?
+             AND h.action IN ('HISTORICAL_REPAIR', 'VENDOR_DONE') AND h.created_at <= ?
+           GROUP BY t.ticket_id""",
+        (ticket["category"], ticket["severity"], ticket["ticket_id"], ticket["created_at"]),
+    ).fetchall()
+
+    target = SLA_HOURS[ticket["severity"]]
+    if rows:
+        median = statistics.median(
+            (from_iso(row["finished"]) - from_iso(row["started"])).total_seconds() / 3600 for row in rows
+        )
+        # Round up to whole hours or days, so that the promise is one we can keep.
+        hours = math.ceil(median) if median < 24 else math.ceil(median / 24) * 24
+        hours = max(1, min(hours, target))
+    else:
+        hours = target
+
+    if hours < 24:
+        label = f"about {hours} hour{'s' if hours != 1 else ''}"
+    else:
+        days = math.ceil(hours / 24)
+        label = f"about {days} day{'s' if days != 1 else ''}"
+    return {
+        "hours": hours,
+        "label": label,
+        "based_on": len(rows),
+        "expected_by": to_iso(from_iso(ticket["created_at"]) + timedelta(hours=hours)),
+    }
+
+
+def _latest_history(conn, ticket_id, action):
+    return conn.execute(
+        """SELECT description FROM ticket_history WHERE ticket_id = ? AND action = ?
+           ORDER BY created_at DESC, history_id DESC LIMIT 1""",
+        (ticket_id, action),
+    ).fetchone()
+
+
+def get_status(conn, ticket_id, now=None):
+    """A resident-safe summary, with no costs, vendors or budget details."""
+    ticket = get_ticket(conn, ticket_id)
+    estimate = estimate_repair(conn, ticket)
+    is_open = ticket["status"] != STATUS_CLOSED
+    delay = _latest_history(conn, ticket["ticket_id"], ACTION_DELAY)
+
+    decline_reason = next_step = None
+    if ticket["status"] == STATUS_OPEN:
+        declined = _latest_history(conn, ticket["ticket_id"], ACTION_DECLINED)
+        if declined:
+            decline_reason, _, next_step = declined["description"].partition(" | Next step: ")
+
+    return {
+        "ticket": ticket,
+        "progress": PROGRESS_TEXT[ticket["status"]],
+        "estimate": estimate,
+        "is_late": is_open and to_iso(now or utc_now()) > estimate["expected_by"],
+        "delay_reason": delay["description"] if delay and is_open else None,
+        "decline_reason": decline_reason,
+        "next_step": next_step,
+    }
 
 
 def _confirmation_matches_ticket(ticket, confirmed_by):
