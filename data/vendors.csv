@@ -1,0 +1,16 @@
+vendor_id,vendor_name,service_category,estimated_cost_eur,response_hours,rating,contact_information
+V-01,Aquafix Demo Plumbing,Plumbing,1800,6,4.2,aquafix@vendors.example | +00 555 0101
+V-02,Blue Heron Demo Plumbers,Plumbing,2500,2,4.7,blueheron@vendors.example | +00 555 0102
+V-03,Pipeworks Demo Services,Plumbing,1200,24,3.9,pipeworks@vendors.example | +00 555 0103
+V-04,Summit Demo Lift Engineering,Lift,3200,3,4.6,summitlift@vendors.example | +00 555 0104
+V-05,Vertical Demo Lift Care,Lift,2600,8,4.1,verticalcare@vendors.example | +00 555 0105
+V-06,Bright Circuit Demo Electrical,Electrical,650,4,4.5,brightcircuit@vendors.example | +00 555 0106
+V-07,Kilowatt Demo Electricians,Electrical,480,12,4.0,kilowatt@vendors.example | +00 555 0107
+V-08,Gatewatch Demo Access Systems,Security,900,3,4.4,gatewatch@vendors.example | +00 555 0108
+V-09,Safe Harbour Demo Security,Security,1100,6,4.6,safeharbour@vendors.example | +00 555 0109
+V-10,Clearwater Demo Facilities,Cleaning,300,12,4.3,clearwater@vendors.example | +00 555 0110
+V-11,Fresh Start Demo Cleaning,Cleaning,240,24,4.0,freshstart@vendors.example | +00 555 0111
+V-12,Handy Hub Demo Repairs,General Maintenance,350,24,4.2,handyhub@vendors.example | +00 555 0112
+V-13,Fixright Demo Maintenance,General Maintenance,420,12,4.4,fixright@vendors.example | +00 555 0113
+V-14,Colour Craft Demo Painters,Painting,900,72,4.5,colourcraft@vendors.example | +00 555 0114
+V-15,New Coat Demo Painting,Painting,750,96,4.1,newcoat@vendors.example | +00 555 0115

@@ -1,0 +1,8 @@
+budget_id,category,allocated_eur,spent_eur
+BUD-01,Plumbing,10000,7500
+BUD-02,Electrical,6000,2400
+BUD-03,Lift,20000,9800
+BUD-04,Security,8000,3100
+BUD-05,Cleaning,5000,1900
+BUD-06,Painting,7000,1200
+BUD-07,General Maintenance,4000,1350

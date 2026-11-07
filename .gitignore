@@ -1,0 +1,15 @@
+# Local database: each machine creates its own with `python tools/desk.py init`
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
+
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
